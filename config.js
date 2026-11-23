@@ -9,7 +9,7 @@ window.SF_CONFIG = {
   // Set true after the create-checkout / create-portal-session Edge Functions are deployed
   // and STRIPE_PRICE_ID is set in Supabase secrets. The functions create a Checkout Session
   // (and Customer Portal session) on the server so the account id cannot be edited in a URL.
-  STRIPE_CHECKOUT: false,
+  STRIPE_CHECKOUT: true,
   // Fallback only, if the Checkout function is off or fails: a Stripe Payment Link.
   STRIPE_PAYMENT_LINK: "",   // e.g. "https://buy.stripe.com/xxxxxxxx"
   // Fallback Customer Portal login link (used if the portal function is off or fails).
