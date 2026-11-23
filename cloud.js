@@ -70,6 +70,9 @@
   Cloud.sharedPhotos = () => (enabled ? get("cloudPhotos", []) : []);
   Cloud.sharedComments = () => (enabled ? get("cloudComments", []) : []);
   Cloud.exclusives = () => (enabled ? get("cloudExclusives", null) : null);
+  // All published articles (teasers for everyone; body/data only when RLS allows).
+  // null = not loaded yet or last pull failed; [] = loaded, none to show.
+  Cloud.articles = () => (enabled ? get("cloudArticles", null) : null);
   Cloud.isCloudId = id => /^c[0-9a-f-]{36}$/.test(String(id));
   const SLED_TYPES = ["","Runner","Toboggan","Cutter","Bobsled","Saucer","Traverse","Flexy Racer","Other"];
   const sledTypeOf = x => (SLED_TYPES.includes(x && (x.sledType || x.sled_type)) ? (x.sledType || x.sled_type) : "");
@@ -263,9 +266,23 @@
         set("cloudListings", pl.data.map(r => fromRow("listing", r, false)));
       } else set("cloudListings", []);
       try {
-        const aq = await db.from("articles").select("*").eq("published", true).order("sort_order", { ascending: true }).limit(50);
-        if (!aq.error) set("cloudExclusives", (aq.data || []).filter(a => a.category === "exclusive"));
-      } catch (e) { /* table may not exist until the migration is run */ }
+        const teasers = await db.from("article_teasers").select("*").eq("published", true).order("sort_order", { ascending: true }).limit(100);
+        if (teasers.error) throw teasers.error;
+        const rows = teasers.data || [];
+        let bodies = {};
+        const full = await db.from("articles").select("id,body,data,access,source,title,dek,byline,example,sort_order,published").eq("published", true).limit(100);
+        if (!full.error) (full.data || []).forEach(a => { bodies[a.id] = a; });
+        const merged = rows.map(t => {
+          const b = bodies[t.id];
+          return Object.assign({}, t, b || {}, { hasBody: !!(b && ((b.body && String(b.body).trim()) || (b.data && (b.data.blocks || []).length))) });
+        });
+        set("cloudArticles", merged);
+        set("cloudExclusives", merged.filter(a => a.access === "exclusive" || a.source === "online"));
+      } catch (e) {
+        /* table/view may not exist until the migration is run */
+        set("cloudArticles", []);
+        set("cloudExclusives", []);
+      }
       await pullNotifications();
       Cloud.lastSync = Date.now(); set("lastSync", Cloud.lastSync);
       if (!outbox().length) Cloud.lastError = "";   // keep an upload problem visible until it's resolved
@@ -328,7 +345,7 @@
     await Cloud.client.auth.signOut();
     // Remove this account's synced copies from the phone; they come back on next sign-in.
     ["sleds", "listings", "photoPosts", "comments"].forEach(k => set(k, get(k, []).filter(x => !x.cloudOwner || x.cloudOwner !== uid)));
-    set("cloudShared", []); set("cloudListings", []); set("cloudPhotos", []); set("cloudComments", []); set("cloudExclusives", null); set("cloudNotifications", []); set("notifyReads", {}); set("notifySettings", null); set("pushEndpoint", ""); set("cloudProfile", null); set("adminViewAs", ""); set("migrationAsked", false);
+    set("cloudShared", []); set("cloudListings", []); set("cloudPhotos", []); set("cloudComments", []); set("cloudExclusives", null); set("cloudArticles", null); set("cloudNotifications", []); set("notifyReads", {}); set("notifySettings", null); set("pushEndpoint", ""); set("cloudProfile", null); set("adminViewAs", ""); set("migrationAsked", false);
   };
   // Permanently deletes the account, its sleds, ads and photos, and cancels any Stripe subscription
   // (supabase/functions/delete-account). Sleds still on this phone are kept as local-only copies.
@@ -337,7 +354,7 @@
     if (error || !data || !data.deleted) throw new Error((error && error.message) || (data && data.error) || "Couldn't delete the account");
     const uid = Cloud.user.id;
     ["sleds", "listings", "photoPosts", "comments"].forEach(k => set(k, get(k, []).map(x => { if (x.cloudOwner === uid) { const y = Object.assign({}, x); delete y.cloudOwner; return y } return x })));
-    set("outbox", []); set("cloudShared", []); set("cloudListings", []); set("cloudPhotos", []); set("cloudComments", []); set("cloudExclusives", null); set("cloudNotifications", []); set("notifyReads", {}); set("notifySettings", null); set("pushEndpoint", ""); set("cloudProfile", null); set("migrationAsked", true);
+    set("outbox", []); set("cloudShared", []); set("cloudListings", []); set("cloudPhotos", []); set("cloudComments", []); set("cloudExclusives", null); set("cloudArticles", null); set("cloudNotifications", []); set("notifyReads", {}); set("notifySettings", null); set("pushEndpoint", ""); set("cloudProfile", null); set("migrationAsked", true);
     await Cloud.client.auth.signOut().catch(() => {});
   };
   Cloud.loadProfile = async () => {
