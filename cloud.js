@@ -401,7 +401,12 @@
       body: { return_origin: Cloud.returnOrigin() },
     });
     if (data && data.url) return data;
-    const msg = (data && data.error) || (error && error.message) || "Couldn't reach Stripe";
+    let detail = data && data.error;
+    // Non-2xx: supabase-js hides the body behind a generic message; read the function's own error text.
+    if (!detail && error && error.context && typeof error.context.json === "function") {
+      try { const j = await error.context.json(); detail = j && j.error; } catch (_) { /* not JSON */ }
+    }
+    const msg = detail || (error && error.message) || "Couldn't reach Stripe";
     throw new Error(msg);
   }
   // Returns a Stripe Checkout (or portal) URL for the signed-in member. Navigating is the caller's job.

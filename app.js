@@ -947,13 +947,13 @@ R.account=()=>{bar("Account",{back:true,sub:CLOUD&&CLOUD.user?"@"+me():"Sign in"
   if(!CLOUD.ready&&!CLOUD.lastError)return `<div class="pad"><p class="muted">Connecting…</p></div>`;
   if(!CLOUD.user){const pe=CLOUD.pendingEmail();
     setTimeout(()=>{const f=$("#signf");if(f)f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector("button");b.disabled=true;b.textContent="Sending…";
-        try{await CLOUD.sendCode(String(new FormData(f).get("email")).trim());toast("Check your email for the 6-digit code",4000);route()}catch(err){toast("Couldn't send: "+(err.message||err),5000);b.disabled=false;b.textContent="Email me a sign-in code"}};
+        try{await CLOUD.sendCode(String(new FormData(f).get("email")).trim());toast("Check your email for your sign-in code",4000);route()}catch(err){toast("Couldn't send: "+(err.message||err),5000);b.disabled=false;b.textContent="Email me a sign-in code"}};
       const v=$("#codef");if(v)v.onsubmit=async e=>{e.preventDefault();const b=v.querySelector("button[type=submit]");b.disabled=true;b.textContent="Checking…";
         try{await CLOUD.verifyCode(pe,new FormData(v).get("code"));toast("Signed in");location.hash="#/account"}catch(err){toast("That code didn't work: "+(err.message||err),5000);b.disabled=false;b.textContent="Sign in"}};
       const o=$("#otherEmail");if(o)o.onclick=()=>{LS.set("pendingEmail","");route()}});
     return `<div class="form">${CLOUD.lastError?`<p class="legend" style="color:var(--red)">${esc(CLOUD.lastError)}</p>`:""}
     ${pe?`<form id="codef" class="form" style="padding:0"><p class="legend" style="padding:0">We emailed a sign-in code to <b>${esc(pe)}</b>. Type it here, or tap the link in that email on this phone.</p>
-      <label>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" required></label><button type="submit" class="btn solid">Sign in</button><button type="button" class="btn" id="otherEmail">Use a different email</button></form>`
+      <label>Sign-in code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" minlength="6" maxlength="8" title="The 6 to 8 digit code from the email" required></label><button type="submit" class="btn solid">Sign in</button><button type="button" class="btn" id="otherEmail">Use a different email</button></form>`
     :`<form id="signf" class="form" style="padding:0"><p class="legend" style="padding:0">No password needed. Enter your email and we'll send you a sign-in code. New here? This also creates your free account.</p>
       <label>Email<input name="email" type="email" autocomplete="email" required></label><button type="submit" class="btn solid">Email me a sign-in code</button></form>`}
     <small class="muted">Sleds you saved on this phone stay here; after you sign in you can add them to your account.</small></div>`}
