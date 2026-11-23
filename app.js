@@ -538,35 +538,29 @@ function artBlocks(blocks){
 }
 R.articles=()=>R.magazine();
 R.magazine=()=>{
-  const M=magazine(), all=liveArticles();
-  const vr=all.filter(a=>a.source==="vintage-runner");
-  const online=all.filter(a=>a.source!=="vintage-runner");
-  bar("Articles",{back:true,sub:all.length?"Free and exclusive articles":"Titles and teasers"});tab("home");
+  const M=magazine(), all=liveArticles().filter(a=>a&&a.published!==false&&!a.example);
+  const free=all.filter(a=>a.access==="free");
+  const exclusive=all.filter(a=>a.access!=="free");
+  bar("Articles",{back:true,sub:"Free and exclusive articles"});tab("home");
   const tags=a=>{
     const bits=[];
-    bits.push(a.access==="free"?"Free":"Exclusive");
-    if(a.example)bits.push("Example");
-    if(a.source==="online")bits.push("Online only");
-    return `<span class="art-tags">${bits.map(x=>`<span class="sample-tag">${esc(x)}</span>`).join("")}</span>`;
+    if(a.source==="vintage-runner")bits.push("Vintage Runner");
+    else bits.push("Online only");
+    return bits.length?`<span class="art-tags">${bits.map(x=>`<span class="sample-tag">${esc(x)}</span>`).join("")}</span>`:"";
   };
-  const go=(a,i)=>{
+  const go=(a,i,showJoin)=>{
     const can=canReadArticle(a);
-    const join=(!can&&a.access==="exclusive")?`<span class="art-tags"><a class="btn gold" href="#/upgrade" style="margin-top:8px">Join to read · $15/yr</a></span>`:"";
+    const join=(showJoin&&!can)?`<span class="art-tags"><a class="btn gold" href="#/upgrade" style="margin-top:8px">Join to read · $15/yr</a></span>`:"";
     const by=a.byline?`<span class="small muted">By ${esc(a.byline)}</span>`:"";
     return `<a class="art-row" href="#/article/${encodeURIComponent(a.id)}"><span class="art-n">${String(i+1).padStart(2,"0")}</span><span class="art-meta"><b>${esc(a.title)}</b><em>${esc(a.dek||"")}</em>${by}${tags(a)}${join}</span><span class="${can?"art-go":"art-lock"}">${can?"›":"🔒"}</span></a>`;
   };
-  const list=(arr,empty)=>arr.length?`<div class="art-list">${arr.map(go).join("")}</div>`:`<p class="legend" style="margin:0 0 10px">${empty}</p>`;
-  const waiting=!all.length;
+  const section=(id,title,intro,arr,showJoin)=>`<h3 class="sec" id="${id}" style="margin:0 0 8px">${title}</h3><p class="legend" style="margin:0 0 10px">${intro}</p>${arr.length?`<div class="art-list">${arr.map((a,i)=>go(a,i,showJoin)).join("")}</div>`:`<p class="legend" style="margin:0 0 18px">Coming soon.</p>`}`;
   return `<div class="art-issue">
-  <div style="margin:0 0 14px">${orderMagBtn()}</div>
-  ${waiting?`<p class="legend" style="margin:0 0 16px">Articles will appear here once they are available. Titles and teasers are visible to everyone. Free articles can be read without a membership; exclusive articles are for paid members.</p>`:""}
-  <h3 class="sec" id="exclusives" style="margin:0 0 8px">Online articles</h3>
-  <p class="legend" style="margin:0 0 10px">Short pieces published throughout the year, not printed in Vintage Runner Magazine. Free articles are open to everyone. Exclusive articles show a title and teaser, with a Join button to read the rest.</p>
-  ${list(online,"No online articles to show yet.")}
-  <div class="art-hero" id="magazine" style="margin-top:22px"><img src="${esc(M.cover)}" alt="Vintage Runner cover"><div><div class="eyebrow">${esc(M.issue||"Issue 1")} · ${esc(M.edition||"")}</div><b>Vintage Runner Magazine</b><p>Published annually around Thanksgiving and winter. These are no-frills text editions to read in the app. The printed magazine keeps the photographs and the layout. Online articles above are a separate category and do not appear in the magazine.</p></div></div>
-  ${magCta()}
-  <p class="legend" style="margin:8px 0 4px">Print copies are sold separately. In the app, each Issue 1 article can be free or exclusive.</p>
-  ${list(vr,"Issue 1 articles will appear here once they are available.")}</div>`;
+  <div class="art-hero" id="magazine"><img src="${esc(M.cover)}" alt="Vintage Runner cover"><div><div class="eyebrow">${esc(M.issue||"Issue 1")} · ${esc(M.edition||"")}</div><b>Vintage Runner Magazine</b><p>Published annually around Thanksgiving and winter. These are no-frills text editions to read in the app. The printed magazine keeps the photographs and the layout.</p></div></div>
+  <div style="margin:14px 0">${orderMagBtn()}</div>
+  ${section("free-articles","Free articles","Anyone can read these, even without signing in.",free,false)}
+  ${section("exclusives","Exclusive articles","For paid members. Everyone can see the title and teaser.",exclusive,true)}
+  ${magCta()}</div>`;
 };
 R.exclusive=id=>R.article(id);
 R.article=id=>{
@@ -582,7 +576,7 @@ R.article=id=>{
   const dateline=d.dateline||"";
   const fullTitle=d.fullTitle||"";
   const can=canReadArticle(a);
-  const sib=(a.source==="vintage-runner"?all.filter(x=>x.source==="vintage-runner"):all.filter(x=>x.source!=="vintage-runner"));
+  const live=all.filter(x=>x&&x.published!==false&&!x.example); const sib=live.filter(x=> (x.access==="free")===(a.access==="free"));
   const i=sib.findIndex(x=>x.id===a.id), prev=sib[i-1], next=sib[i+1];
   bar(a.source==="vintage-runner"?"Vintage Runner":"Articles",{back:true,sub:articleSourceLabel(a)+(a.access==="free"?" · Free":" · Exclusive")});tab("home");
   let body="";
@@ -880,7 +874,7 @@ R.unknown=()=>{bar("Unknown / unconfirmed makers",{back:true,sub:"Not filed unde
 // ===== Suggestions to the developer. Delivered free with no keys in the app:
 // 1) a Google Form in Sled Finder's Google account (set SUGGEST_FORM.action + entry ids once the form exists), posted
 //    straight from the app so the existing Google Form alert catches it; 2) otherwise a pre-filled email to the museum.
-const APP_VER="b17";
+const APP_VER="b18";
 const SUGGEST_FORM={action:"https://docs.google.com/forms/d/e/1FAIpQLSeL5-bPPHkSnMlo-utOtZdRJfQN5yUCQRQOt19Bgt4VAjkmBA/formResponse",fields:{category:"entry.1937538793",message:"entry.790371823",name:"entry.1603670551",email:"entry.1586826346",context:"entry.1782360007"}};
 let lastScreen="#/home";window.addEventListener("hashchange",e=>{try{const h=new URL(e.oldURL).hash||"#/home";if(!/^#\/suggest/.test(h))lastScreen=h}catch(x){}});
 const SUGGEST_EMAIL="rbsledmuseum@gmail.com";
