@@ -608,7 +608,7 @@ R.profile=()=>{bar("Profile",{sub:ROLES[role()]});tab("profile");
   <div class="menu"><a href="#/database">Sled Maker and Model Database ${premium()?"":"🔒"}<span>›</span></a><a href="#/identify">Identify a sled from a photo ${premium()?"":"🔒"}<span>›</span></a><a href="#/map">Sled Picker Map ${premium()?"":"🔒"}<span>›</span></a><a href="#/timeline">Coasting Through History ${premium()?"":"🔒"}<span>›</span></a><a href="#/articles">Vintage Runner Magazine ${premium()?"":"🔒"}<span>›</span></a><a href="#/articles">Exclusive Articles ${premium()?"":"🔒"}<span>›</span></a><a href="#/events">Upcoming Events <span>›</span></a><a href="#/makers">Sled makers directory <span>›</span></a></div>
   <h3 class="sec">About</h3>
   ${outLinkMenu()}
-  <div class="menu"><a href="#/terms">Privacy: private sleds are visible only to you <span>›</span></a><a href="#/terms">Terms &amp; Community Guidelines (draft) <span>›</span></a></div>
+  <div class="menu"><a href="#/privacy">Privacy: private sleds are visible only to you <span>›</span></a><a href="#/terms">Terms &amp; Community Guidelines (draft) <span>›</span></a></div>
   <p class="legend" style="padding-bottom:24px">${CLOUD?"Sled Finder "+APP_VER+". Your sleds are kept on this phone and, when you're signed in, in your Sled Finder account.":"Clickable mockup for review. No accounts, servers or payments."}</p>`;
 };
 R.sale=(arg)=>{const parts=String(arg||"").split(",").filter(Boolean);const fcc=COUNTRIES[parts[0]]?parts[0]:"";const typ=SLED_TYPES.includes(parts[0])?parts[0]:(SLED_TYPES.includes(parts[1])?parts[1]:"");
@@ -856,7 +856,7 @@ R.unknown=()=>{bar("Unknown / unconfirmed makers",{back:true,sub:"Not filed unde
 // ===== Suggestions to the developer. Delivered free with no keys in the app:
 // 1) a Google Form in Sled Finder's Google account (set SUGGEST_FORM.action + entry ids once the form exists), posted
 //    straight from the app so the existing Google Form alert catches it; 2) otherwise a pre-filled email to the museum.
-const APP_VER="b11";
+const APP_VER="b14";
 const SUGGEST_FORM={action:"https://docs.google.com/forms/d/e/1FAIpQLSeL5-bPPHkSnMlo-utOtZdRJfQN5yUCQRQOt19Bgt4VAjkmBA/formResponse",fields:{category:"entry.1937538793",message:"entry.790371823",name:"entry.1603670551",email:"entry.1586826346",context:"entry.1782360007"}};
 let lastScreen="#/home";window.addEventListener("hashchange",e=>{try{const h=new URL(e.oldURL).hash||"#/home";if(!/^#\/suggest/.test(h))lastScreen=h}catch(x){}});
 const SUGGEST_EMAIL="rbsledmuseum@gmail.com";
@@ -921,11 +921,28 @@ R.suggest=()=>{bar("Send a suggestion",{back:true,sub:"To the Sled Finder develo
   <div class="row2"><label>Your name (optional)<input name="name" maxlength="100" autocomplete="name"></label><label>Email for a reply (optional)<input name="email" type="email" maxlength="200" autocomplete="email"></label></div>
   <small class="muted" style="font-size:.7rem">Please don't include a street address or anything private.</small>
   <button class="btn solid" type="submit">Send suggestion</button></form>`};
+const legalSection=(h,ps)=>`<h3 class="sec">${h}</h3><div class="prose">${ps.map(p=>`<p>${p}</p>`).join("")}</div>`;
+const legalBanner=()=>`<div class="mock-banner">Draft for review, not legal advice</div>`;
+R.privacy=()=>{bar("Privacy Policy",{back:true,sub:"Draft for review"});tab("profile");
+  const S=legalSection;
+  return `${legalBanner()}
+  <div class="mp-head"><p class="eyebrow">Sled Finder</p><h1>Privacy Policy</h1><div class="small muted">Draft, November 2026. Effective November 2026.</div></div>
+  ${S("1. Who we are",["Sled Finder is a membership app for antique sled collectors, operated by Jonathan Spangler in Schaumburg, Illinois. Questions: <a href=\"mailto:rbsledmuseum@gmail.com\">rbsledmuseum@gmail.com</a>."])}
+  ${S("2. What we collect",["To sign you in, we collect your email address and send you a one-time sign-in code.","If you set a public name or username, we store that. We also store your membership status, such as whether you have a current paid year.","When you post, we store the sleds, sale listings, community photos and comments you add, including the photos you upload and the town-level location you give. We never ask for a street address. A coarse map point may be stored so a find can appear on the Sled Picker Map. In the United States a ZIP code may be stored; in other countries only the first part of a postal code is kept.","We store your notification choices and, if you turn on device alerts, a push subscription for that browser.","If you send a suggestion through the feedback form, we receive the message and category, any name and email you choose to include, and a short note about the app version and screen you were on."])}
+  ${S("3. Who handles it",["Supabase stores the data and handles sign-in.","Stripe processes membership payments. Sled Finder never sees your card number.","Brevo sends the sign-in emails.","GitHub Pages hosts this website.","Suggestions go to a Google Form in Sled Finder's Google account. If the form can't be reached, the app opens an email to rbsledmuseum@gmail.com instead.","The map uses OpenStreetMap for map images. When you enter a town or a postal code to place a pin, the app may look that place up through OpenStreetMap's Nominatim service. The site also loads fonts from Google Fonts and the map library from a public CDN (unpkg)."])}
+  ${S("4. What's visible to whom",["Private sleds are not shown to other members. They are visible only to you, and to the operator of Sled Finder if needed to run or correct the service.","Other posts — shared sleds, sale listings, community photo posts and comments — are visible to paid members. If a membership lapses, that member's shared posts stay in Sled Finder but are hidden from others until the membership is renewed.","Your public name or username is shown on your posts. If you post a sled for sale, the email address you include on the listing is shown to paid members so they can contact you.","Photo files are stored at unguessable addresses so the app can show them. Anyone who has the exact file address could open that photo, even if the sled itself is private and is not shown in the app."])}
+  ${S("5. We don't sell your data",["We don't sell your information, and Sled Finder has no ads. The app does not include an advertising or analytics service."])}
+  ${S("6. Cookies and data on your device",["The app does not use advertising cookies. It uses your browser's local storage, and IndexedDB for photos saved on this device, so you can stay signed in and keep a working copy of your data. If you turn on device alerts, a service worker is used to deliver them."])}
+  ${S("7. Deleting your account",["You can delete your account under Account → Delete my account. You will be asked to confirm.","When you delete your account, Sled Finder cancels any paid membership, removes the photos you uploaded, and deletes your account, profile, sleds (including private ones), sale listings, community photo posts, comments, notification settings and device-alert subscriptions from Sled Finder.","Sleds that are still saved on this phone stay on this phone as local copies. They are no longer part of your Sled Finder account.","Notices already sent to other members about a post may remain, without your name attached. Suggestions you already sent, and payment records Stripe keeps for billing, are not removed by account deletion. Email rbsledmuseum@gmail.com if you want a suggestion removed."])}
+  ${S("8. Children",["Sled Finder is not for children under 13. If we learn that a child under 13 has created an account, we will delete it."])}
+  ${S("9. Changes",["We may update this policy. If changes are significant, members will be told in the app. The effective date is shown at the top of this page."])}
+  ${S("10. Contact",["Email rbsledmuseum@gmail.com. Sled Finder is operated by Jonathan Spangler, Schaumburg, Illinois."])}
+  <p class="fine"><a href="#/terms">Terms &amp; Community Guidelines</a></p>`};
 R.terms=()=>{bar("Terms & Guidelines",{back:true,sub:"Draft for review"});tab("profile");
-  const S=(h,ps)=>`<h3 class="sec">${h}</h3><div class="prose">${ps.map(p=>`<p>${p}</p>`).join("")}</div>`;
-  return `<div class="mock-banner">DRAFT · plain-language summary for review · not legal advice · have a lawyer review before launch</div>
-  <div class="mp-head"><p class="eyebrow">Sled Finder</p><h1>Terms &amp; Community Guidelines</h1><div class="small muted">Draft, November 2026. Placeholder text for the mockup.</div></div>
-  ${S("1. Membership",["Posting sleds, posting sale ads, and seeing other members' posts and photos (the Sled Maker and Model Database, the Sled Picker Map, “What sled is this?” and collectors' sleds on maker pages) require a paid Sled Finder membership, currently $15 a year, renewing automatically until you cancel.","Without a membership you can still browse the maker directory, the free makers' curated galleries and Sleds for Sale listings."])}
+  const S=legalSection;
+  return `${legalBanner()}
+  <div class="mp-head"><p class="eyebrow">Sled Finder</p><h1>Terms &amp; Community Guidelines</h1><div class="small muted">Draft, November 2026</div></div>
+  ${S("1. Membership",["Posting sleds, posting sale ads, and seeing other members' posts and photos (the Sled Maker and Model Database, the Sled Picker Map, “What sled is this?” and collectors' sleds on maker pages) require a paid Sled Finder membership, currently $15 a year, renewing automatically until you cancel.","Payments go through Stripe. You can cancel any time through Account → Manage membership. There are no refunds; you keep access until the end of the year you paid for.","Without a membership you can still browse the maker directory and the free makers' curated galleries.","You must be 13 or older to use Sled Finder."])}
   ${S("2. Your posts and photos",["You keep ownership of the photos and information you post.","By posting, you give Sled Finder permission to store, show, resize and organize your posts and photos inside Sled Finder for other members to see, for as long as they stay in Sled Finder. Your posts become part of Sled Finder's shared record of antique sleds."])}
   ${S("3. Only post photos you own",["Post only photos you took yourself or have permission to use. Don't post other people's photos, catalog scans or ads unless you have the right to share them."])}
   ${S("4. Keep it accurate",["Give the maker, model, estimated years of manufacture and location as accurately as you can. A best guess is fine. Choose “Unknown” or use a custom maker such as “Likely Pratt” when you're not sure.","Use town-level locations only. Never post a street address."])}
@@ -935,8 +952,10 @@ R.terms=()=>{bar("Terms & Guidelines",{back:true,sub:"Draft for review"});tab("p
   ${S("8. Sleds for Sale",["Buying and selling happen directly between members by email. Sled Finder isn't part of the sale and doesn't hold payments or guarantee items, descriptions or shipping."])}
   ${S("9. Be respectful",["Be kind and helpful, especially when helping identify sleds. No harassment, spam or misleading listings."])}
   ${S("10. Changes",["Sled Finder may update these terms. If changes are significant, members will be told in the app."])}
-  <p class="fine">Draft for discussion between Jonathan Spangler and his advisers. This is not legal advice.</p>`;
-};
+  ${S("11. Deleting your account",["You can delete your account at any time under Account → Delete my account. That removes your account and your posts from Sled Finder, as described in the <a href=\"#/privacy\">Privacy Policy</a>."])}
+  ${S("12. No warranty",["Sled Finder is provided as is, with no warranty. To the extent the law allows, Sled Finder's liability is limited to the membership fees you paid in the last 12 months."])}
+  ${S("13. Illinois law and contact",["These terms are governed by the laws of the State of Illinois. Questions: <a href=\"mailto:rbsledmuseum@gmail.com\">rbsledmuseum@gmail.com</a>. Sled Finder is operated by Jonathan Spangler, Schaumburg, Illinois."])}
+  <p class="fine"><a href="#/privacy">Privacy Policy</a> · Draft for review, not legal advice.</p>`};
 window.__toast=toast;
 // ===== Live mode screens: account (email code sign-in), membership, sync, migration =====
 const ago=t=>{if(!t)return "never";const m=Math.round((Date.now()-t)/60000);return m<1?"just now":m<60?m+" min ago":Math.round(m/60)+" h ago"};
