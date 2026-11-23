@@ -4,8 +4,8 @@
 // Design: localStorage on the phone stays the working copy, so the app keeps working with no signal.
 // Every local save also queues an "outbox" entry; the outbox is pushed when signed in and online.
 // Pulls bring the member's own sleds/ads/photo posts (from any device), other members' SHARED sleds
-// and community photos (Premium only, enforced by row-level security on the server) and, for Premium
-// members, sale ads. Sleds for Sale is not public — only paying members can browse listings.
+// and community photos (Premium only, enforced by row-level security on the server) and, for any
+// signed-in member, sale ads. Sleds for Sale is not public — you need to be signed in to browse listings.
 //
 // With no SUPABASE_URL / SUPABASE_ANON_KEY in config.js, this file does nothing and the app runs as the demo.
 (function () {
@@ -256,8 +256,8 @@
       } else {
         set("cloudShared", []); set("cloudPhotos", []); set("cloudComments", []);
       }
-      // Sale ads: Premium / admin only (RLS also hides them from free, lapsed and anon).
-      if (uid && premNow()) {
+      // Sale ads: any signed-in member (free, paid, or lapsed). RLS hides them from signed-out visitors.
+      if (uid) {
         const pl = await db.from("listings").select("*").eq("status", "active").is("deleted_at", null).neq("owner", uid).order("created_at", { ascending: false }).limit(500);
         if (pl.error) throw pl.error;
         set("cloudListings", pl.data.map(r => fromRow("listing", r, false)));
