@@ -515,7 +515,10 @@ function magazine(){return window.MAGAZINE||{orderUrl:"https://rosebudsledmuseum
 function liveArticles(){const cloud=CLOUD&&CLOUD.articles&&CLOUD.articles();return Array.isArray(cloud)?cloud:[]}
 function articleById(id){return liveArticles().find(x=>x.id===id)}
 function articleSourceLabel(a){return a&&a.source==="vintage-runner"?"Vintage Runner Magazine":"Online only"}
-function canReadArticle(a){if(!a)return false;if(a.access==="free")return !!a.hasBody;return premium()&&!!a.hasBody}
+function isComingSoon(a){if(!a)return false;if(a.coming_soon===true||a.comingSoon===true)return true;const d=a.data||{};return d.comingSoon===true||d.coming_soon===true}
+function listedArticle(a){return !!(a&&a.published!==false&&(!a.example||isComingSoon(a)))}
+function listedArticles(){return liveArticles().filter(listedArticle).slice().sort((a,b)=>{const ac=isComingSoon(a)?1:0,bc=isComingSoon(b)?1:0;if(ac!==bc)return ac-bc;return (a.sort_order||0)-(b.sort_order||0)})}
+function canReadArticle(a){if(!a||isComingSoon(a))return false;if(a.access==="free")return !!a.hasBody;return premium()&&!!a.hasBody}
 
 // Order link for everyone (all tiers): the magazine section on rosebudsledmuseum.com (same link the app already uses).
 const orderMagBtn=(st)=>`<a class="btn gold" href="${esc(magazine().orderUrl)}" target="_blank" rel="noopener"${st?` style="${st}"`:""}>📖 Order Vintage Runner Magazine</a>`;
@@ -538,23 +541,27 @@ function artBlocks(blocks){
 }
 R.articles=()=>R.magazine();
 R.magazine=()=>{
-  const M=magazine(), all=liveArticles().filter(a=>a&&a.published!==false&&!a.example);
+  const M=magazine(), all=listedArticles();
   const free=all.filter(a=>a.access==="free");
   const exclusive=all.filter(a=>a.access!=="free");
   bar("Articles",{back:true,sub:"Free and exclusive articles"});tab("home");
   const tags=a=>{
     const bits=[];
+    if(isComingSoon(a))bits.push("Coming soon");
     if(a.source==="vintage-runner")bits.push("Vintage Runner");
     else bits.push("Online only");
-    return bits.length?`<span class="art-tags">${bits.map(x=>`<span class="sample-tag">${esc(x)}</span>`).join("")}</span>`:"";
+    return `<span class="art-tags">${bits.map(x=>`<span class="sample-tag">${esc(x)}</span>`).join("")}</span>`;
   };
-  const go=(a,i,showJoin)=>{
+  const go=(a,i)=>{
     const can=canReadArticle(a);
-    const join=(showJoin&&!can)?`<span class="art-tags"><a class="btn gold" href="#/upgrade" style="margin-top:8px">Join to read · $15/yr</a></span>`:"";
+    const soon=isComingSoon(a);
     const by=a.byline?`<span class="small muted">By ${esc(a.byline)}</span>`:"";
-    return `<a class="art-row" href="#/article/${encodeURIComponent(a.id)}"><span class="art-n">${String(i+1).padStart(2,"0")}</span><span class="art-meta"><b>${esc(a.title)}</b><em>${esc(a.dek||"")}</em>${by}${tags(a)}${join}</span><span class="${can?"art-go":"art-lock"}">${can?"›":"🔒"}</span></a>`;
+    const inner=`<span class="art-n">${String(i+1).padStart(2,"0")}</span><span class="art-meta"><b>${esc(a.title)}</b><em>${esc(a.dek||"")}</em>${by}${tags(a)}</span><span class="${can?"art-go":"art-lock"}">${can?"›":"🔒"}</span>`;
+    if(soon) return `<div class="art-row" style="cursor:default">${inner}</div>`;
+    return `<a class="art-row" href="#/article/${encodeURIComponent(a.id)}">${inner}</a>`;
   };
-  const section=(id,title,intro,arr,showJoin)=>`<h3 class="sec" id="${id}" style="margin:0 0 8px">${title}</h3><p class="legend" style="margin:0 0 10px">${intro}</p>${arr.length?`<div class="art-list">${arr.map((a,i)=>go(a,i,showJoin)).join("")}</div>`:`<p class="legend" style="margin:0 0 18px">Coming soon.</p>`}`;
+  const join=(!premium()&&exclusive.length)?`<p style="margin:0 0 12px"><a class="btn gold" href="#/upgrade">Join to read · $15/yr</a></p>`:"";
+  const section=(id,title,intro,arr,withJoin)=>`<h3 class="sec" id="${id}" style="margin:0 0 8px">${title}</h3><p class="legend" style="margin:0 0 10px">${intro}</p>${withJoin?join:""}${arr.length?`<div class="art-list">${arr.map((a,i)=>go(a,i)).join("")}</div>`:`<p class="legend" style="margin:0 0 18px">Coming soon.</p>`}`;
   return `<div class="art-issue">
   <div class="art-hero" id="magazine"><img src="${esc(M.cover)}" alt="Vintage Runner cover"><div><div class="eyebrow">${esc(M.issue||"Issue 1")} · ${esc(M.edition||"")}</div><b>Vintage Runner Magazine</b><p>Published annually around Thanksgiving and winter. These are no-frills text editions to read in the app. The printed magazine keeps the photographs and the layout.</p></div></div>
   <div style="margin:14px 0">${orderMagBtn()}</div>
@@ -576,11 +583,13 @@ R.article=id=>{
   const dateline=d.dateline||"";
   const fullTitle=d.fullTitle||"";
   const can=canReadArticle(a);
-  const live=all.filter(x=>x&&x.published!==false&&!x.example); const sib=live.filter(x=> (x.access==="free")===(a.access==="free"));
+  const live=listedArticles(); const sib=live.filter(x=>!isComingSoon(x)&&((x.access==="free")===(a.access==="free")));
   const i=sib.findIndex(x=>x.id===a.id), prev=sib[i-1], next=sib[i+1];
-  bar(a.source==="vintage-runner"?"Vintage Runner":"Articles",{back:true,sub:articleSourceLabel(a)+(a.access==="free"?" · Free":" · Exclusive")});tab("home");
+  bar(a.source==="vintage-runner"?"Vintage Runner":"Articles",{back:true,sub:articleSourceLabel(a)+(isComingSoon(a)?" · Coming soon":a.access==="free"?" · Free":" · Exclusive")});tab("home");
   let body="";
-  if(can){
+  if(isComingSoon(a)){
+    body=`<div class="pad" style="padding:18px 0 8px;text-align:center"><p class="legend" style="margin:0 0 12px">This article is coming soon.</p>${a.access==="exclusive"&&!premium()?`<a class="btn gold" href="#/upgrade">Join to read · $15/yr</a>`:""}</div>`;
+  }else if(can){
     if(d.blocks&&d.blocks.length)body=artBlocks(d.blocks);
     else if(a.body)body=`<p>${esc(a.body)}</p>`;
     else body=`<p class="art-note">This article isn't available yet.</p>`;
@@ -590,7 +599,7 @@ R.article=id=>{
     body=`<p class="art-note">This article isn't available yet.</p>`;
   }
   return `<article class="art-read">
-    ${a.example?'<div class="mock-banner">Example placeholder · not a finished article</div>':""}
+    ${a.example&&!isComingSoon(a)?'<div class="mock-banner">Example placeholder · not a finished article</div>':""}
     <p class="eyebrow">${esc(kicker)}${dateline?" · "+esc(dateline):""}${a.access==="free"?" · Free":""}</p>
     <h1>${esc(a.title)}</h1>
     ${fullTitle&&fullTitle!==a.title?`<p class="art-full">${esc(fullTitle)}</p>`:""}
@@ -874,7 +883,7 @@ R.unknown=()=>{bar("Unknown / unconfirmed makers",{back:true,sub:"Not filed unde
 // ===== Suggestions to the developer. Delivered free with no keys in the app:
 // 1) a Google Form in Sled Finder's Google account (set SUGGEST_FORM.action + entry ids once the form exists), posted
 //    straight from the app so the existing Google Form alert catches it; 2) otherwise a pre-filled email to the museum.
-const APP_VER="b18";
+const APP_VER="b19";
 const SUGGEST_FORM={action:"https://docs.google.com/forms/d/e/1FAIpQLSeL5-bPPHkSnMlo-utOtZdRJfQN5yUCQRQOt19Bgt4VAjkmBA/formResponse",fields:{category:"entry.1937538793",message:"entry.790371823",name:"entry.1603670551",email:"entry.1586826346",context:"entry.1782360007"}};
 let lastScreen="#/home";window.addEventListener("hashchange",e=>{try{const h=new URL(e.oldURL).hash||"#/home";if(!/^#\/suggest/.test(h))lastScreen=h}catch(x){}});
 const SUGGEST_EMAIL="rbsledmuseum@gmail.com";

@@ -274,7 +274,9 @@
         if (!full.error) (full.data || []).forEach(a => { bodies[a.id] = a; });
         const merged = rows.map(t => {
           const b = bodies[t.id];
-          return Object.assign({}, t, b || {}, { hasBody: !!(b && ((b.body && String(b.body).trim()) || (b.data && (b.data.blocks || []).length))) });
+          const d = (b && b.data) || {};
+          const coming = !!(t.coming_soon || t.comingSoon || d.comingSoon || d.coming_soon);
+          return Object.assign({}, t, b || {}, { coming_soon: coming, hasBody: !!(b && ((b.body && String(b.body).trim()) || (d.blocks || []).length)) });
         });
         set("cloudArticles", merged);
         set("cloudExclusives", merged.filter(a => a.access === "exclusive" || a.source === "online"));
