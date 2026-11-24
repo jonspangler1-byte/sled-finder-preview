@@ -599,6 +599,12 @@
     await Cloud.pull();
   }
 
+  // Register the service worker on every load so the app meets PWA / TWA
+  // installability checks. The worker itself does not cache assets.
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
   Cloud.init = async () => {
     if (!enabled) return;
     if (!window.supabase || !window.supabase.createClient) {
