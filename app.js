@@ -44,6 +44,9 @@ const ROLES={free:"Free (never paid)",premium:"Paid member",lapsed:"Membership l
 // Live mode (config.js filled in): the role comes from the signed-in account on the server (cloud.js).
 // Only an admin can "view as" another role there, and only on their own screen.
 const CLOUD=window.SFCloud&&window.SFCloud.enabled?window.SFCloud:null;
+const isAndroidTwa=()=>!!(window.SF_isAndroidTwa&&window.SF_isAndroidTwa());
+const twaPremiumNote="Premium membership is available on the Sled Finder website. This app does not sell memberships. Sign in to use a membership you already have.";
+const twaPremiumHtml=signedIn=>`<p class="small muted" style="text-align:center">${twaPremiumNote}</p>${signedIn?`<button type="button" class="btn" id="refreshP">I've paid, refresh</button>`:`<a class="btn" href="#/account">Sign in</a>`}`;
 const canViewAs=()=>!CLOUD||CLOUD.realRole()==="admin";
 const role=()=>{if(CLOUD)return CLOUD.role();const r=LS.get("role",null);return ROLES[r]?r:(LS.get("premium",false)?"premium":"free")};
 const setRole=r=>{if(CLOUD){if(CLOUD.realRole()==="admin")CLOUD.setViewAs(r);return}LS.set("role",r);LS.set("premium",r==="premium"||r==="admin")};
@@ -164,6 +167,7 @@ const makerVals=f=>{const v=String(f.get("maker"));if(SPLIT_BRANDS[v])return {ma
 const liked=()=>LS.get("liked",{});
 document.title=window.APP_NAME+(window.SFCloud&&window.SFCloud.enabled?"":" — clickable mockup");
 $("#sideTitle").textContent=window.APP_NAME;
+if(!(window.SFCloud&&window.SFCloud.enabled)){const sn0=document.querySelector(".side-note .eyebrow");if(sn0)sn0.textContent="Clickable mockup · demo";}
 
 function toast(t,ms){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),ms||1900)}
 const DEFAULT_NOTIFY_SETTINGS={sleds:true,articles:true,photos:true,listings:true};
@@ -987,7 +991,7 @@ window.__toast=toast;
 // ===== Live mode screens: account (email code sign-in), membership, sync, migration =====
 const ago=t=>{if(!t)return "never";const m=Math.round((Date.now()-t)/60000);return m<1?"just now":m<60?m+" min ago":Math.round(m/60)+" h ago"};
 const memberLine=()=>{const p=CLOUD&&CLOUD.profile,r=CLOUD?CLOUD.realRole():"free";if(r==="admin")return "Admin · Sled Finder";if(r==="premium")return "Premium member · renews or ends "+new Date(p.premium_until).toLocaleDateString();if(r==="lapsed")return "Membership lapsed on "+new Date(p.premium_until).toLocaleDateString();return "Free account"};
-const openStripeUrl=async(btn,kind)=>{if(!CLOUD)return;const prev=btn.textContent;btn.disabled=true;btn.textContent="Opening…";try{const url=kind==="portal"?await CLOUD.startPortal():await CLOUD.startCheckout();if(!url)throw new Error("Couldn't open Stripe");location.href=url}catch(err){btn.disabled=false;btn.textContent=prev;toast(err.message||String(err),6000)}};
+const openStripeUrl=async(btn,kind)=>{if(!CLOUD)return;if(isAndroidTwa()){toast(twaPremiumNote,5000);return}const prev=btn.textContent;btn.disabled=true;btn.textContent="Opening…";try{const url=kind==="portal"?await CLOUD.startPortal():await CLOUD.startCheckout();if(!url)throw new Error("Couldn't open Stripe");location.href=url}catch(err){btn.disabled=false;btn.textContent=prev;toast(err.message||String(err),6000)}};
 R.account=()=>{bar("Account",{back:true,sub:CLOUD&&CLOUD.user?"@"+me():"Sign in"});tab("profile");
   if(!CLOUD)return `<div class="pad"><p>Accounts are turned off in this demo. Everything you add is saved only in this browser.</p><a class="btn" href="#/profile">Back to Profile</a></div>`;
   if(!CLOUD.ready&&!CLOUD.lastError)return `<div class="pad"><p class="muted">Connecting…</p></div>`;
@@ -1015,7 +1019,7 @@ R.account=()=>{bar("Account",{back:true,sub:CLOUD&&CLOUD.user?"@"+me():"Sign in"
     const o=$("#signout");if(o)o.onclick=async()=>{if(!confirm("Sign out of Sled Finder on this phone?"))return;try{await CLOUD.signOut();toast("Signed out");location.hash="#/profile"}catch(err){toast(err.message,6000)}}});
   return `<div class="form">
   <h3 class="sec" style="margin:0">Membership</h3><p style="margin:0"><b>${esc(memberLine())}</b></p>
-  ${CLOUD.paymentsOn()&&(r==="premium"||CLOUD.hasOpenSubscription())?`<button type="button" class="btn" id="manageP">Manage or cancel membership ↗</button>`:(r==="premium"||r==="admin"?"":`<a class="btn gold" href="#/upgrade">${r==="lapsed"?"Renew membership · $15/yr":"Join Premium · $15/yr"}</a>`)}
+  ${isAndroidTwa()?`<p class="small muted">${twaPremiumNote}</p>`:(CLOUD.paymentsOn()&&(r==="premium"||CLOUD.hasOpenSubscription())?`<button type="button" class="btn" id="manageP">Manage or cancel membership ↗</button>`:(r==="premium"||r==="admin"?"":`<a class="btn gold" href="#/upgrade">${r==="lapsed"?"Renew membership · $15/yr":"Join Premium · $15/yr"}</a>`))}
   ${n&&!CLOUD.migrationAsked()?`<div class="card" style="padding:12px"><b>${n} item${n===1?"":"s"} saved on this phone</b><p class="small" style="margin:6px 0">These were saved before you had an account. Add them to your account so they show on your other devices and on the website?${r==="premium"||r==="admin"?"":" They upload once your membership is active."}</p><div class="row2"><button type="button" class="btn solid" id="migrate">Add to my account</button><button type="button" class="btn" id="skipmig">Not now</button></div></div>`:(n?`<button type="button" class="btn" id="migrate">Add ${n} item${n===1?"":"s"} saved on this phone to my account</button>`:"")}
   <h3 class="sec" style="margin:8px 0 0">Your public name</h3>
   <form id="handlef" class="row2" style="align-items:end"><label style="flex:1">Shown as @name on shared sleds<input name="handle" value="${esc(CLOUD.handle())}" pattern="[a-z0-9_]{3,30}" required></label><button class="btn" type="submit">Save</button></form>
@@ -1033,7 +1037,7 @@ function liveUpgrade(reason){bar(window.APP_NAME+" Premium",{back:true,sub:"$15 
   const r=CLOUD.realRole(),signedIn=!!CLOUD.user,usePortal=signedIn&&CLOUD.hasOpenSubscription();
   if(r==="premium"||r==="admin")return `<div class="pad" style="text-align:center"><p style="font-family:var(--serif);font-size:1.6rem;margin:20px 0 6px">${r==="admin"?"Admin (Sled Finder)":"You're a Premium member"}</p><p class="small muted">${esc(memberLine())}</p><div style="display:flex;flex-direction:column;gap:10px;margin-top:18px"><a class="btn pine" href="#/makers">Browse all 61 makers</a><a class="btn" href="#/ticket">Museum ticket</a><a class="btn" href="#/account">Account &amp; membership</a></div></div>`;
   const payCta=usePortal?`<button type="button" class="btn gold" id="joinP">Update payment or manage membership</button>`:`<button type="button" class="btn gold" id="joinP">${r==="lapsed"?"Renew membership · $15/yr":"Join Premium · $15/yr"}</button>`;
-  const cta=!signedIn?`<a class="btn gold" href="#/account">Sign in to join · $15/yr</a>`:(CLOUD.paymentsOn()?`${payCta}<p class="small muted" style="text-align:center">Secure checkout by Stripe. Back in the app, tap “I've paid, refresh” if Premium doesn't switch on by itself.</p><button type="button" class="btn" id="refreshP">I've paid, refresh</button>`:`<button class="btn gold" disabled>Memberships open soon</button>`);
+  const cta=isAndroidTwa()?twaPremiumHtml(signedIn):(!signedIn?`<a class="btn gold" href="#/account">Sign in to join · $15/yr</a>`:(CLOUD.paymentsOn()?`${payCta}<p class="small muted" style="text-align:center">Secure checkout by Stripe. Back in the app, tap “I've paid, refresh” if Premium doesn't switch on by itself.</p><button type="button" class="btn" id="refreshP">I've paid, refresh</button>`:`<button class="btn gold" disabled>Memberships open soon</button>`));
   setTimeout(()=>{const b=$("#refreshP");if(b)b.onclick=async()=>{b.disabled=true;await CLOUD.loadProfile();await CLOUD.syncNow();toast(premium()?"Premium is on. Thank you!":"Not showing yet. Give it a minute and try again.",4000);route()};const j=$("#joinP");if(j)j.onclick=()=>openStripeUrl(j,usePortal?"portal":"checkout")});
   return `<div class="pw-hero"><p class="eyebrow" style="color:#e7b7a5">${esc(window.APP_NAME)} Premium</p><h1>${r==="lapsed"?"Welcome back. Renew to bring your posts back.":"Post, see and sell sleds. All 61 makers."}</h1><p>${esc(typeof reason==="string"?reason:(r==="lapsed"?lapsedText(allSleds().filter(isOwn).length):"Your research library and community for antique sleds."))}</p></div>
   <div class="price"><div><div class="small muted">Yearly · renews automatically</div><b>$15.00 / year</b></div></div>
@@ -1148,7 +1152,7 @@ window.SFApp={phURL};
 // Live mode: re-draw when the account or synced data changes, but never while someone is typing in a form.
 const NO_LIVE_REDRAW=["add","edit","sell","editlisting","suggest","identify","addphoto"];
 if(CLOUD){CLOUD.onChange(()=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.closest("#view"))return;if(NO_LIVE_REDRAW.includes((location.hash||"#/home").slice(2).split("/")[0]))return;const rs1=$("#roleSel");if(rs1)rs1.closest("p").style.display=canViewAs()?"":"none";if(PH.ready)route()});
-  const sn=document.querySelector(".side-note .eyebrow");if(sn)sn.textContent="Sled Finder · live beta";
+  const sn=document.querySelector(".side-note .eyebrow");if(sn)sn.textContent="From the Rosebud Sled Museum";
   const rd=$("#resetDemo");if(rd)rd.parentNode.style.display="none";
   const rs0=$("#roleSel");if(rs0&&!canViewAs())rs0.closest("p").style.display="none"}
 Promise.race([phOpen(),new Promise(r=>setTimeout(()=>r(null),3000))]).then(async db=>{PH.db=db;if(db)await phLoadAll(db);PH.ready=true;route();if(CLOUD)CLOUD.init().catch(e=>console.error("cloud init",e))});

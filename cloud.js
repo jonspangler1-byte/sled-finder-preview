@@ -10,6 +10,24 @@
 // With no SUPABASE_URL / SUPABASE_ANON_KEY in config.js, this file does nothing and the app runs as the demo.
 (function () {
   "use strict";
+  // Detect a Play Store Trusted Web Activity so we can hide Stripe checkout
+  // (Play Payments policy). Web / PWA browsers keep checkout. The TWA sets
+  // start_url ?src=twa and/or document.referrer android-app://…
+  window.SF_isAndroidTwa = function () {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get("src") === "twa") sessionStorage.setItem("sf-src-twa", "1");
+      if (sessionStorage.getItem("sf-src-twa") === "1") return true;
+    } catch (e) { /* private mode or no sessionStorage */ }
+    const ref = document.referrer || "";
+    if (ref.indexOf("android-app://") === 0) {
+      try { sessionStorage.setItem("sf-src-twa", "1"); } catch (e) { /* ignore */ }
+      return true;
+    }
+    return false;
+  };
+  try { window.SF_isAndroidTwa(); } catch (e) { /* ignore */ }
+
   const C = window.SF_CONFIG || {};
   const enabled = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY);
   const K = k => "svc_" + k;
@@ -430,6 +448,7 @@
   }
   // Returns a Stripe Checkout (or portal) URL for the signed-in member. Navigating is the caller's job.
   Cloud.startCheckout = async () => {
+    if (window.SF_isAndroidTwa && window.SF_isAndroidTwa()) throw new Error("Memberships are sold on the Sled Finder website, not in this Android app.");
     if (!Cloud.user) throw new Error("Sign in first");
     if (Cloud.hasOpenSubscription()) return Cloud.startPortal();
     if (C.STRIPE_CHECKOUT) {
@@ -446,6 +465,7 @@
     return u;
   };
   Cloud.startPortal = async () => {
+    if (window.SF_isAndroidTwa && window.SF_isAndroidTwa()) throw new Error("Memberships are sold on the Sled Finder website, not in this Android app.");
     if (C.STRIPE_CHECKOUT) {
       try {
         const data = await invokeBilling("create-portal-session");
