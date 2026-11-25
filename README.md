@@ -1,6 +1,6 @@
 # Sled Finder preview
 
-This is a **working preview** of the real Sled Finder app, built from the `backend` branch of [sled-collector-mockup](https://github.com/jonspangler1-byte/sled-collector-mockup) at commit 0069942fff7694d826c38eaa6acbe2be45c6a0c6.
+This is a **working preview** of the real Sled Finder app, built from the `backend` branch of [sled-collector-mockup](https://github.com/jonspangler1-byte/sled-collector-mockup) at commit 0210eda046f6e03cc41d6582a0bbaa2a72094ccc.
 
 It is **not** the public clickable demo on GitHub Pages (`main`). That demo was not changed.
 

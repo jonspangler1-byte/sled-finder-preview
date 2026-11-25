@@ -92,7 +92,7 @@
   // null = not loaded yet or last pull failed; [] = loaded, none to show.
   Cloud.articles = () => (enabled ? get("cloudArticles", null) : null);
   Cloud.isCloudId = id => /^c[0-9a-f-]{36}$/.test(String(id));
-  const SLED_TYPES = ["","Runner","Toboggan","Cutter","Bobsled","Saucer","Traverse","Flexy Racer","Other"];
+  const SLED_TYPES = ["","Runner","Toboggan","Cutter","Bobsled","Saucer","Traverse","Flexy Racer","Ski Sled","Steerable Sled","Clipper","Sleigh","Tri-Runner","Other"];
   const sledTypeOf = x => (SLED_TYPES.includes(x && (x.sledType || x.sled_type)) ? (x.sledType || x.sled_type) : "");
 
   // ───────── photos ─────────

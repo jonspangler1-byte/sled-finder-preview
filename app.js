@@ -59,7 +59,7 @@ const userSleds=()=>LS.get("sleds",[]);
 const normPics=s=>{const o=Object.assign({},s);o.imgs=(o.imgs&&o.imgs.length?o.imgs:(o.img?[o.img]:[])).map(phURL).filter(Boolean);o.img=o.imgs[0]||"";o.years=o.years||o.year||"Unknown";return o};
 const allSleds=()=>{const ov=LS.get("edits",{}),del=LS.get("deleted",[]);return userSleds().concat(CLOUD?CLOUD.sharedSleds():[]).concat(window.SAMPLE_SLEDS.map(s=>ov[s.id]?Object.assign({},s,ov[s.id]):s)).filter(s=>!del.includes(s.id)).map(normPics)};
 const allListings=()=>{const ov=LS.get("ledits",{}),del=LS.get("ldeleted",[]);return LS.get("listings",[]).concat(CLOUD?CLOUD.publicListings():[]).concat(window.SALE_LISTINGS.map(l=>ov[l.id]?Object.assign({},l,ov[l.id]):l)).filter(l=>!del.includes(l.id)).map(normPics)};
-const SLED_TYPES=["Runner","Toboggan","Cutter","Bobsled","Saucer","Traverse","Flexy Racer","Other"];
+const SLED_TYPES=["Runner","Toboggan","Cutter","Bobsled","Saucer","Traverse","Flexy Racer","Ski Sled","Steerable Sled","Clipper","Sleigh","Tri-Runner","Other"];
 const typeOf=x=>(x&&SLED_TYPES.includes(x.sledType)?x.sledType:"");
 const typeSel=(name,cur)=>`<select name="${name}"><option value="">Type (optional)</option>${SLED_TYPES.map(t=>`<option value="${esc(t)}"${cur===t?" selected":""}>${esc(t)}</option>`).join("")}</select>`;
 const typeLine=x=>{const t=typeOf(x);return t?`<div><dt>Sled type</dt><dd>${esc(t)}</dd></div>`:""};
