@@ -46,11 +46,12 @@ img{display:block;max-width:100%}
 .badge-prem{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--gold);color:#1b1a18;padding:3px 7px;border-radius:20px}
 .view{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--stone);-webkit-overflow-scrolling:touch}
 .pad{padding:16px}
-.tabbar{flex:none;display:flex;justify-content:space-around;align-items:center;background:#fff;border-top:1px solid var(--line);padding:8px 4px 22px}
-.tabbar a{flex:1;text-align:center;text-decoration:none;font-size:.64rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
-.tabbar .ic{font-size:1.2rem;line-height:1.2}
+.tabbar{flex:none;display:flex;justify-content:space-around;align-items:flex-end;background:#fff;border-top:1px solid var(--line);padding:6px 1px 22px;gap:0}
+.tabbar a{flex:1 1 0;min-width:0;text-align:center;text-decoration:none;font-size:.5rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:1px;padding:6px 0 0;line-height:1.1;letter-spacing:-.01em;white-space:nowrap;overflow:visible;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tabbar .ic{font-size:1rem;line-height:1;height:1.15em;display:flex;align-items:center;justify-content:center}
+.tabbar .ic svg{display:block;width:1.05em;height:1.05em}
 .tabbar a.on{color:var(--red)}
-.tabbar a.add .ic{background:var(--red);color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-18px;box-shadow:0 4px 10px rgba(138,28,28,.35);font-size:1.4rem}
+.tabbar a.add .ic{background:var(--red);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 4px 10px rgba(138,28,28,.35);font-size:1.25rem}
 .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:24px;font-size:.8rem;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap;z-index:40;display:flex;align-items:center;gap:10px;max-width:calc(100% - 24px)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.has-action{pointer-events:auto}
@@ -231,7 +232,6 @@ h3.sec a{font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing
 .detail-ph.lockph{aspect-ratio:4/3}
 .tile .th.lockph .lt{font-size:.64rem}
 .nudge{display:inline-block;margin-top:8px;font-size:.74rem;font-weight:600;color:var(--red);text-decoration:none;background:#f8ece8;border:1px solid #ecd0c8;border-radius:10px;padding:6px 9px}
-.tabbar a{font-size:.6rem}
 .th.nophoto{display:flex;align-items:center;justify-content:center;text-align:center;font-size:.7rem;font-weight:600;color:var(--muted);background:repeating-linear-gradient(45deg,#efeae1 0 8px,#f7f3ec 8px 16px)!important}
 .teaser{margin:14px 16px 0;padding:14px;border-radius:14px;background:#fff;border:1px solid #ecd6a6;box-shadow:0 2px 0 #f3e6c8}
 .teaser .t1{margin:0 0 6px;font-size:.88rem;line-height:1.5;color:var(--ink)}
@@ -446,9 +446,7 @@ table.ins{width:100%;border-collapse:collapse;font-size:.76rem;background:#fff}
 table.ins th,table.ins td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}
 @media print{.side-note,.appbar,.tabbar,.statusbar,.notch,#toast,.tour,.btn{display:none!important}.phone,.screen,.view{all:unset;display:block}}
 
-/* 7-item tab bar */
-.tabbar a{font-size:.58rem;padding:0 1px}
-.tabbar .ic{font-size:1.05rem}
+/* 8-item tab bar sizing lives with .tabbar rules above */
 
 /* community comments */
 .cmt-list{padding:0 16px 8px;display:flex;flex-direction:column;gap:10px}

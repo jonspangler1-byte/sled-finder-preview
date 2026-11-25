@@ -370,7 +370,7 @@ R.home=()=>{bar(window.APP_SHORT,{sub:"Rosebud Sled Museum",act:'<a class="act" 
   ${premium()?dbIntro()+`<div class="feed">${feed.map(postCard).join("")}</div>`:""}
   ${outLinkAbout()}`;
 };
-R.database=()=>{const html=R.home();setTimeout(()=>{const el=$("#database"),v=$("#view");if(el&&v)v.scrollTop=Math.max(0,el.offsetTop-8)},0);return html};
+R.database=()=>{const html=R.home();tab("database");setTimeout(()=>{const el=$("#database"),v=$("#view");if(el&&v)v.scrollTop=Math.max(0,el.offsetTop-8)},0);return html};
 R.collection=()=>{bar("My Collection",{sub:"@"+me(),act:'<a class="act" href="#/add" aria-label="Add">＋</a>'});tab("collection");
   setTimeout(()=>{const g=$("#colgrid");if(!g)return;const tiles=[...g.children];document.querySelectorAll("#colf [data-f]").forEach(b=>b.onclick=()=>{const f=b.dataset.f;document.querySelectorAll("#colf [data-f]").forEach(x=>x.classList.toggle("on",x===b));
     tiles.forEach(t=>t.style.display=(f==="shared"&&t.dataset.sh!=="1")||(f==="private"&&t.dataset.sh==="1")?"none":"");
@@ -488,7 +488,7 @@ R.maker=id=>{const m=M(id);if(!m)return R.makers();const p=m.p,free=isFree(m),P=
   <h3 class="sec">Collectors' sleds by model</h3>${!premium()?databaseGate():(()=>{const G={};allSleds().filter(s=>s.maker==m.id&&(s.shared||isOwn(s))).forEach(s=>{(G[modelKey(s)]=G[modelKey(s)]||[]).push(s)});const ks=Object.keys(G);
     return ks.length?ks.map(k=>{const g=G[k];return `<p class="grp-h"><b>${esc(disp(m))} ${esc(g[0].model)}</b> · ${g.length} collector${g.length==1?"":"s"}</p>${groupList(g)}`}).join(""):'<p class="small muted" style="padding:0 16px">No shared sleds yet.</p>'})()}<div style="height:20px"></div>`;
 };
-R.search=()=>{bar("Search",{back:true,sub:"Makers, models, collectors"});tab("home");
+R.search=()=>{bar("Search",{back:true,sub:"Makers, models, collectors"});tab("database");
   setTimeout(()=>{const i=$("#q"),out=$("#res");const run=()=>{const q=i.value.trim().toLowerCase();
     if(!q){out.innerHTML='<p class="legend">Try “Flyer”, “Chicago”, “Speedster”, “Garton” or “Flexy Racer”.</p>';return}
     const mks=makerEntries().filter(e=>(e.label+" "+(e.brand?"":e.m.name+" "+e.m.models)+" "+e.m.area).toLowerCase().includes(q));
