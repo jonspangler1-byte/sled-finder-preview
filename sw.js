@@ -1,7 +1,12 @@
 // Sled Finder service worker: Web Push only (no asset caching, so the app cannot go stale).
 // Registered by the live app when a VAPID public key is set. See docs/go-live.md.
 self.addEventListener("install", (event) => { self.skipWaiting(); });
-self.addEventListener("activate", (event) => { event.waitUntil(self.clients.claim()); });
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    try { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } catch (e) {}
+    await self.clients.claim();
+  })());
+});
 
 self.addEventListener("push", (event) => {
   let data = {};
