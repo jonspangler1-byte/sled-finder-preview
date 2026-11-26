@@ -106,13 +106,13 @@ function bindGalleries(){document.querySelectorAll(".gal").forEach(g=>{const t=g
   d.forEach((x,j)=>x.onclick=()=>t.scrollTo({left:j*t.clientWidth,behavior:"smooth"}))})}
 // Multi-photo picker: real file upload (resized in the browser) plus demo photos. First photo = cover.
 function resizeFile(file,max,q){max=max||1000;q=q||.72;return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",q))};im.src=r.result};r.readAsDataURL(file)})}
-const pickerHTML=(id,req)=>`<div class="picker" id="${id}"><div class="pk-thumbs"></div><div class="row2"><label class="btn pk-up">📷 Add photos${req?" *":""}<input type="file" accept="image/*" multiple hidden></label><button type="button" class="btn pk-demo">＋ Demo photo</button></div><small class="muted pk-help">Add several photos. The first one is the cover; tap a photo to make it the cover. Tap the ✕ to remove a photo.</small></div>`;
+const pickerHTML=(id,req)=>`<div class="picker" id="${id}"><div class="pk-thumbs"></div><div class="${isIosApp()?"":"row2"}"><label class="btn pk-up">📷 Add photos${req?" *":""}<input type="file" accept="image/*" multiple hidden></label>${isIosApp()?"":`<button type="button" class="btn pk-demo">＋ Demo photo</button>`}</div><small class="muted pk-help">Add several photos. The first one is the cover; tap a photo to make it the cover. Tap the ✕ to remove a photo.</small></div>`;
 function picker(id,initial,demo){const root=$("#"+id),T=root.querySelector(".pk-thumbs");let pics=(initial||[]).slice(),handled=false;
   const draw=()=>{T.innerHTML=pics.map((u,i)=>`<div class="pk-t" data-i="${i}" style="background-image:url('${u}')">${i===0?'<span class="pk-cover">Cover</span>':""}<button type="button" class="pk-x" data-x="${i}" aria-label="Remove photo">✕</button></div>`).join("")||'<div class="pk-empty">No photos yet</div>'};
   const hit=e=>{const xbtn=e.target.closest&&e.target.closest(".pk-x"),thumb=e.target.closest&&e.target.closest(".pk-t");if(!xbtn&&!thumb)return;if(handled&&(e.type==="click"||e.type==="pointerup")){e.preventDefault();e.stopPropagation();return}if(xbtn){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();handled=true;const i=+xbtn.dataset.x;if(!(i>=0)||i>=pics.length)return;const [removed]=pics.splice(i,1);draw();toast("Photo removed",5000,{label:"Undo",onClick:()=>{if(!root.isConnected)return;pics.splice(Math.min(i,pics.length),0,removed);draw()}});return}if(e.type!=="click"&&e.type!=="pointerup")return;const i=+thumb.dataset.i;if(i){handled=true;const [p]=pics.splice(i,1);pics.unshift(p);draw();toast("Cover photo set")}};
   T.addEventListener("click",hit);T.addEventListener("pointerup",hit);T.addEventListener("pointerdown",e=>{handled=false;if(e.target.closest&&e.target.closest(".pk-x"))e.stopPropagation()});
   root.querySelector("input[type=file]").onchange=async e=>{for(const f of [...e.target.files].slice(0,10)){const sm=await resizeFile(f);pics.push(sm);if(driveSyncOn()){try{HIRES.set(sm,await resizeFile(f,1600,.85))}catch(x){}}}e.target.value="";draw()};
-  root.querySelector(".pk-demo").onclick=()=>{const left=demo.filter(u=>!pics.includes(u));pics.push(left.length?left[0]:demo[Math.floor(Math.random()*demo.length)]);draw();toast("Demo photo added (sample image)")};
+  const demoBtn=root.querySelector(".pk-demo");if(demoBtn)demoBtn.onclick=()=>{const left=demo.filter(u=>!pics.includes(u));pics.push(left.length?left[0]:demo[Math.floor(Math.random()*demo.length)]);draw();toast("Demo photo added (sample image)")};
   draw();return ()=>pics.slice()}
 // ===== Drive sync (admin only): copies each saved sled (photos + maker, model, years, origin ZIP, notes)
 // into Jonathan's "Sled Finder Uploads" Google Drive folder via a Google Apps Script web app.
@@ -306,7 +306,7 @@ const UGC_LABEL={sled:"sled",listing:"sale listing",photo:"photo post",comment:"
 const REPORT_REASONS=[["spam","Spam or advertising"],["abusive","Harassment, hate or abuse"],["sexual","Sexual or violent content"],["scam","Scam or fraud"],["off_topic","Not about sleds / off-topic"],["other","Something else"]];
 const modBar=(kind,x)=>{if(!x||ownUGC(x))return "";const u=x.user||"member";return `<div class="modbar"><button type="button" class="linkish" data-report="${kind}" data-rid="${esc(String(x.id))}">⚑ Report</button><span class="muted"> · </span><button type="button" class="linkish" data-blockid="${esc(x.ownerId||"")}" data-blockh="${esc(u)}">Block @${esc(u)}</button></div>`};
 const findUGC=(kind,id)=>(kind==="sled"?allSleds:kind==="listing"?allListings:kind==="photo"?allPhotoPosts:allComments)().find(x=>String(x.id)===String(id));
-function closeSheet(){const o=document.getElementById("sheet");if(o)o.remove()}
+function closeSheet(){const o=document.getElementById("sheet");if(o)o.remove();restoreChrome(true)}
 function sheet(html){closeSheet();const o=document.createElement("div");o.id="sheet";o.className="sheet-veil";o.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeSheet()});return o}
 async function doBlock(id,handle){if(CLOUD)await CLOUD.block(id,handle);else{const l=LS.get("blocks",[]).filter(b=>b.handle!==handle);l.push({id:id||"",handle});LS.set("blocks",l)}}
 async function doUnblock(id,handle){if(CLOUD)await CLOUD.unblock(id,handle);else LS.set("blocks",LS.get("blocks",[]).filter(b=>!((id&&b.id===id)||b.handle===handle)))}
@@ -1195,10 +1195,27 @@ R.events=()=>{bar("Upcoming Events",{back:true,sub:"Rosebud Sled Museum"});tab("
   <div class="pad"><a class="btn" href="${esc(src)}" target="_blank" rel="noopener">All upcoming events on the website ↗</a></div>`;
 };
 
+function restoreChrome(force){
+  const focused=document.activeElement&&/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if(!focused||force){
+    try{window.scrollTo(0,0)}catch(e){}
+    const r=document.documentElement,b=document.body;
+    if(r){r.scrollLeft=0;r.style.overflow=""}
+    if(b){b.scrollLeft=0;b.style.overflow="";b.style.position="";b.style.top="";b.style.left="";b.style.width="";b.style.height=""}
+  }
+  const tb=document.getElementById("tabbar");
+  if(tb){tb.hidden=false;tb.style.display="";tb.style.visibility="";tb.style.pointerEvents=""}
+  const v=document.getElementById("view");
+  if(v){if(!v.style.overflowY||v.style.overflowY==="hidden")v.style.overflowY="auto";v.style.overflowX="hidden"}
+  const phone=document.querySelector(".phone");
+  if(phone&&window.matchMedia("(max-width:760px)").matches&&window.visualViewport){
+    phone.style.height=Math.max(1,Math.round(window.visualViewport.height))+"px";
+  }else if(phone){phone.style.height=""}
+}
 function route(){
   closeSheet();
   const h=(location.hash||"#/home").slice(2).split("/");if(isIosApp()&&IOS_HIDDEN_ROUTES.includes(h[0])){location.replace("#/database");return}const fn=R[h[0]]||R.home;
-  $("#view").innerHTML=iosSafe(fn(h.length>2?h.slice(1).join(","):h[1]));$("#view").scrollTop=0;bindLikes();bindGalleries();bindComments();bindModeration();
+  $("#view").innerHTML=iosSafe(fn(h.length>2?h.slice(1).join(","):h[1]));$("#view").scrollTop=0;bindLikes();bindGalleries();bindComments();bindModeration();restoreChrome(true);
   const c=$("#cancelP");if(c)c.onclick=()=>{setRole("free");toast("Back to Free");route()};
   const rs=$("#roleSel");if(rs){rs.value=role();rs.onchange=()=>{setRole(rs.value);toast("Demo role: "+ROLES[rs.value]);route()}}
   const tn=$("#tnamef");if(tn)tn.onsubmit=async e=>{e.preventDefault();try{await CLOUD.setDisplayName(new FormData(tn).get("display_name"));toast("Name saved");route()}catch(err){toast(err.message,5000)}};
@@ -1208,6 +1225,13 @@ function route(){
     else{deleteSled(b.dataset.del);toast("Sled deleted");location.hash=isOwn(it)?"#/collection":"#/home"}});
 }
 window.addEventListener("hashchange",route);
+if(window.visualViewport){
+  const onVV=()=>restoreChrome(false);
+  window.visualViewport.addEventListener("resize",onVV);
+  window.visualViewport.addEventListener("scroll",onVV);
+}
+window.addEventListener("focusout",()=>setTimeout(()=>restoreChrome(true),300));
+window.addEventListener("orientationchange",()=>setTimeout(()=>restoreChrome(true),300));
 document.addEventListener("click",e=>{const t=e.target.closest("[data-soon]");if(t){e.preventDefault();toast("Coming in the real app")}});
 const TOUR=[
  {h:"#/home",t:"Welcome to Sled Finder",b:"A quick look around. Tap “Viewing as” at the top any time to see the app as Free, Premium, Lapsed or Admin."},
