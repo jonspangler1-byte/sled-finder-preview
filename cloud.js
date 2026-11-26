@@ -160,7 +160,8 @@
       imgs: r.photos || [], img: (r.photos || [])[0] || "", editedBy: r.edited_by || undefined, updatedAt: Date.parse(r.updated_at) || 0,
       created: Date.parse(r.created_at) || 0,
     });
-    if (mine) o.cloudOwner = r.owner;
+    if (mine) o.cloudOwner = r.owner; else o.ownerId = r.owner;
+    o.hiddenByAdmin = !!r.hidden_by_admin;
     if (kind === "sled") Object.assign(o, { userAdded: mine, likes: o.likes || 0, region: r.region, lat: r.lat, lng: r.lng, shared: r.shared });
     else if (kind === "listing") Object.assign(o, { title: r.title, price: r.price, email: r.contact_email });
     else if (kind === "photo") Object.assign(o, { caption: r.caption || "", userAdded: mine });
@@ -290,6 +291,7 @@
     const db = Cloud.client, uid = Cloud.user && Cloud.user.id;
     try {
       if (uid) {
+        await Cloud.pullBlocks();
         await pullTable("sled", true);
         await pullTable("listing", true);
         await pullTable("photo", true);
@@ -401,6 +403,58 @@
   };
   // Permanently deletes the account, its sleds, ads and photos, and cancels any Stripe subscription
   // (supabase/functions/delete-account). Sleds still on this phone are kept as local-only copies.
+  // ───────── report & block (App Store guideline 1.2) ─────────
+  // Works before docs/migrations/2026-11-26-report-block.sql is run: blocks stay on this
+  // phone and reports return { stored:false } so the app can still send them by Google Form.
+  const missingTable = e => /could not find|schema cache|does not exist|relation .* does not exist|PGRST20[0-9]|42P01/i.test(((e && (e.message || e.code)) || ""));
+  Cloud.blocks = () => get("blocks", []);
+  Cloud.block = async (ownerId, handle) => {
+    const list = Cloud.blocks().filter(b => !((ownerId && b.id === ownerId) || (handle && b.handle === handle)));
+    list.push({ id: ownerId || "", handle: handle || "" }); set("blocks", list);
+    if (enabled && Cloud.client && Cloud.user && ownerId && ownerId !== Cloud.user.id) {
+      try { const r = await Cloud.client.from("user_blocks").upsert({ blocker: Cloud.user.id, blocked: ownerId, blocked_handle: String(handle || "").slice(0, 60) }, { onConflict: "blocker,blocked" }); if (r.error && !missingTable(r.error)) console.warn(r.error); } catch (e) { /* kept locally */ }
+    }
+  };
+  Cloud.unblock = async (ownerId, handle) => {
+    set("blocks", Cloud.blocks().filter(b => !((ownerId && b.id === ownerId) || (!ownerId && handle && b.handle === handle))));
+    if (enabled && Cloud.client && Cloud.user && ownerId) {
+      try { const r = await Cloud.client.from("user_blocks").delete().eq("blocker", Cloud.user.id).eq("blocked", ownerId); if (r.error && !missingTable(r.error)) console.warn(r.error); } catch (e) { /* ignore */ }
+    }
+  };
+  Cloud.pullBlocks = async () => {
+    if (!enabled || !Cloud.client || !Cloud.user) return;
+    try {
+      const r = await Cloud.client.from("user_blocks").select("blocked,blocked_handle").eq("blocker", Cloud.user.id);
+      if (r.error) return;
+      const server = (r.data || []).map(x => ({ id: x.blocked, handle: x.blocked_handle || "" }));
+      const local = Cloud.blocks();
+      for (const b of local) if (b.id && !server.some(x => x.id === b.id)) { try { await Cloud.client.from("user_blocks").upsert({ blocker: Cloud.user.id, blocked: b.id, blocked_handle: b.handle || "" }, { onConflict: "blocker,blocked" }); } catch (e) { /* ignore */ } }
+      const merged = server.concat(local.filter(b => !b.id || !server.some(x => x.id === b.id)));
+      set("blocks", merged);
+    } catch (e) { /* keep local list */ }
+  };
+  // Returns { stored: true } when saved to Supabase; { stored: false } when the table isn't there yet or no sign-in.
+  Cloud.report = async ({ kind, targetId, targetOwner, targetHandle, reason, details }) => {
+    if (!enabled || !Cloud.client || !Cloud.user || !targetId) return { stored: false };
+    const row = { reporter: Cloud.user.id, kind, target_id: targetId, target_handle: String(targetHandle || "").slice(0, 60), reason, details: String(details || "").slice(0, 1000) };
+    if (targetOwner) row.target_owner = targetOwner;
+    const r = await Cloud.client.from("content_reports").insert(row);
+    if (r.error) { if (missingTable(r.error)) return { stored: false }; throw r.error; }
+    return { stored: true };
+  };
+  Cloud.openReports = async () => {
+    if (!enabled || !Cloud.client || Cloud.realRole() !== "admin") return { ok: false, rows: [] };
+    const r = await Cloud.client.from("content_reports").select("*").eq("status", "open").order("created_at", { ascending: false }).limit(200);
+    if (r.error) return { ok: false, missing: missingTable(r.error), rows: [], error: r.error.message };
+    return { ok: true, rows: r.data || [] };
+  };
+  Cloud.moderate = async (reportId, action) => {
+    const r = await Cloud.client.rpc("moderate_report", { report_id: reportId, action });
+    if (r.error) throw r.error;
+    await Cloud.pull();
+    return r.data;
+  };
+
   Cloud.deleteAccount = async () => {
     const { data, error } = await Cloud.client.functions.invoke("delete-account", { method: "POST" });
     if (error || !data || !data.deleted) throw new Error((error && error.message) || (data && data.error) || "Couldn't delete the account");
