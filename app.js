@@ -156,7 +156,14 @@ const lapsedText=n=>`Your membership has lapsed. ${n?`Your ${n} earlier post${n=
 const gate=(title,text)=>`<div class="gate"><div class="gl">🔒</div><b>${title}</b><p>${text}</p><a class="btn gold" href="#/upgrade">${lapsed()?"Renew membership · $15/yr":"Join · $15/yr"}</a><a class="small" href="#/terms">Terms &amp; Community Guidelines (draft)</a></div>`;
 const signInGate=(title,text)=>`<div class="gate"><div class="gl">🔒</div><b>${title}</b><p>${text}</p><a class="btn gold" href="#/account">Sign in</a><a class="small" href="#/terms">Terms &amp; Community Guidelines (draft)</a></div>`;
 const databaseGate=()=>gate(lapsed()?"Membership lapsed":"The Sled Maker and Model Database is for members",lapsed()?lapsedText(0)+" Renew to see the Sled Maker and Model Database again.":"Subscribers (paid members) can view and add their sleds, and search and map others' sleds. Free members can still browse the free makers' galleries.");
-const dbIntro=()=>`<h3 class="sec" id="database">Sled Maker and Model Database</h3><p class="legend">Subscribers (paid members) can view and add their sleds, and search and map others' sleds.</p><p class="legend db-links"><a href="#/identify">📷 Photo ID${premium()?"":" 🔒"}</a><a href="#/map">🗺 Sled Picker Map${premium()?"":" 🔒"}</a><a href="#/search">Search</a>${premium()?'<a href="#/add">＋ Add a sled</a>':""}</p>`;
+const dbIco=p=>`<span class="db-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${p}</svg></span>`;
+const dbIntro=()=>`<h3 class="sec" id="database">Sled Maker and Model Database</h3><p class="legend">Subscribers (paid members) can view and add their sleds, and search and map others' sleds.</p>
+<nav class="db-links" aria-label="Database tools">
+  <a class="db-link" href="#/identify">${dbIco('<path d="M4 8h3l2-3h6l2 3h3v11H4V8z"/><circle cx="12" cy="13.5" r="3.2"/>')}Photo ID${premium()?"":" 🔒"}</a>
+  <a class="db-link" href="#/map">${dbIco('<path d="M9 3.5l6 2.5 5-2v15l-5 2-6-2.5-5 2.5v-15l5-2.5z"/><path d="M9 3.5v15M15 6v15"/>')}Sled Picker Map${premium()?"":" 🔒"}</a>
+  <a class="db-link" href="#/search">${dbIco('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M16 16l5 5"/>')}Search</a>
+  ${premium()?`<a class="db-link db-link-add" href="#/add">${dbIco('<path d="M12 5v14M5 12h14"/>')}Add a sled</a>`:""}
+</nav>`;
 const ackHTML=()=>`<label class="ack"><input type="checkbox" name="ack" required><span>I agree my post and photos become part of Sled Finder and may be edited or removed by Sled Finder for accuracy. <a href="#/terms" target="_blank">Read the Terms</a></span></label>`;
 // Maker on a post: a real maker id, or 0 = unknown with an optional custom text ("Likely Pratt").
 const mk=s=>s&&brandKey(s)?SPLIT_BRANDS[brandKey(s)].label:s&&+s.maker?disp(M(s.maker)):(s&&s.makerText?s.makerText+" (unconfirmed)":"Unknown maker");
