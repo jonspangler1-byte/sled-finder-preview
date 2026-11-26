@@ -211,7 +211,9 @@
           console.warn("cloud push failed", item, e);
           const msg = String(e && (e.message || e.error_description) || e);
           Cloud.lastError = /row-level security|permission denied|42501|403/i.test(msg)
-            ? (Cloud.realRole() === "premium" || Cloud.realRole() === "admin" ? "The server refused a change: " + msg : "Saved on this phone. It uploads once your membership is active.")
+            ? (Cloud.realRole() === "premium" || Cloud.realRole() === "admin" ? "The server refused a change: " + msg
+              : Cloud.freeAccessPromo ? "The server refused to save this sled. Free access may not be switched on in the database yet."
+              : "Saved on this phone. It uploads once your membership is active.")
             : msg;
           break;                                   // keep order; retry later
         }
@@ -239,6 +241,15 @@
     set(key, arr);
   }
   const premNow = () => { const r = Cloud.realRole(); return r === "premium" || r === "admin" };
+  Cloud.freeAccessPromo = !!(C && C.FREE_ACCESS_PROMO);
+  async function loadPromoFlag() {
+    Cloud.freeAccessPromo = !!(C && C.FREE_ACCESS_PROMO);
+    if (!Cloud.client || typeof Cloud.client.rpc !== "function") return;
+    try {
+      const r = await Cloud.client.rpc("free_access_promo");
+      if (!r.error && typeof r.data === "boolean") Cloud.freeAccessPromo = r.data;
+    } catch (e) { /* keep the config.js value if the function is not installed yet */ }
+  }
   async function pullTable(kind, mineOnly) {
     const table = KINDS[kind], uid = Cloud.user && Cloud.user.id, db = Cloud.client;
     if (mineOnly) {
@@ -251,9 +262,10 @@
       mergeMine(kind, res.data || []);
       return;
     }
-    if (!uid || !premNow()) { set(cacheKey(kind), []); return; }
+    const canPullShared = kind === "sled" ? (premNow() || Cloud.freeAccessPromo) : premNow();
+    if (!canPullShared || (kind !== "sled" && !uid)) { set(cacheKey(kind), []); return; }
     let q = db.from(table).select("*").is("deleted_at", null).order("updated_at", { ascending: false }).limit(1000);
-    if (kind === "sled") q = q.neq("owner", uid).eq("shared", true);
+    if (kind === "sled") { q = q.eq("shared", true); if (uid) q = q.neq("owner", uid); }
     else q = q.neq("owner", uid);
     const res = await q;
     if (res.error) {
@@ -274,6 +286,9 @@
         await pullTable("sled", false);
         await pullTable("photo", false);
         await pullTable("comment", false);
+      } else if (Cloud.freeAccessPromo) {
+        await pullTable("sled", false);
+        set("cloudPhotos", []); set("cloudComments", []);
       } else {
         set("cloudShared", []); set("cloudPhotos", []); set("cloudComments", []);
       }
@@ -639,6 +654,7 @@
       if (evt === "INITIAL_SESSION") return;       // handled below
       if (evt === "SIGNED_IN" || evt === "SIGNED_OUT" || evt === "USER_UPDATED") setTimeout(() => onSession(session), 0);
     });
+    await loadPromoFlag();
     const { data } = await Cloud.client.auth.getSession();
     // Magic-link return (?code=…): strip it from the address bar once the session exists.
     if (/[?&]code=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash);

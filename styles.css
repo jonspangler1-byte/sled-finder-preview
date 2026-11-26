@@ -493,3 +493,7 @@ table.ins th,table.ins td{border-bottom:1px solid var(--line);padding:6px 4px;te
 /* About / outbound museum + YouTube links */
 .about-links{padding-bottom:12px}
 .about-links .menu{margin-top:0}
+
+/* Limited-time free database access */
+.promo-banner{margin:10px 16px 0;padding:8px 12px;background:var(--stone);border:1px solid var(--line);border-radius:10px;color:var(--pine);font-size:.78rem;font-weight:600;line-height:1.35}
+.promo-banner a{color:var(--red);font-weight:700}

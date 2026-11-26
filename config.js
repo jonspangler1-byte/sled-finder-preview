@@ -18,6 +18,14 @@ window.SF_CONFIG = {
   SITE_URL: "",              // e.g. "https://sledfinder.app/"
   // Show the made-up sample collectors and sample sale ads when live? Keep false for the real launch.
   SHOW_SAMPLE_DATA: false,
+  // Limited-time: unlock the shared sled database, Photo ID, the Sled Picker Map,
+  // and adding a sled (a free sign-in is still required to post, so posts are
+  // attributable). Exclusive articles, community photos, the timeline and the
+  // museum ticket stay members-only. In live mode, public.free_access_promo()
+  // in Supabase wins once that function exists — set it false there to turn
+  // the promo off without a redeploy. Also set this to false and redeploy if
+  // the function is not installed yet.
+  FREE_ACCESS_PROMO: true,
   // Web Push (installed PWA / browser). Public VAPID key only. Generate a pair with
   // `node scripts/generate-vapid-keys.mjs` and set the private key as the Supabase
   // secret VAPID_PRIVATE_KEY — never put the private key in this file or in the repo.
