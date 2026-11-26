@@ -45,8 +45,15 @@ const ROLES={free:"Free (never paid)",premium:"Paid member",lapsed:"Membership l
 // Only an admin can "view as" another role there, and only on their own screen.
 const CLOUD=window.SFCloud&&window.SFCloud.enabled?window.SFCloud:null;
 const isAndroidTwa=()=>!!(window.SF_isAndroidTwa&&window.SF_isAndroidTwa());
-const twaPremiumNote="Premium membership is available on the Sled Finder website. This app does not sell memberships. Sign in to use a membership you already have.";
-const twaPremiumHtml=signedIn=>`<p class="small muted" style="text-align:center">${twaPremiumNote}</p>${signedIn?`<button type="button" class="btn" id="refreshP">I've paid, refresh</button>`:`<a class="btn" href="#/account">Sign in</a>`}`;
+const twaPremiumNote="This app does not sell memberships. Sign in to use a membership you already have.";
+// iOS App Store wrapper (?src=ios): no prices, Join/Upgrade buttons or checkout (guideline 3.1.1 / 3.1.3(a)).
+const isIosApp=()=>!!(window.SF_isIosApp&&window.SF_isIosApp());
+const iosSafe=html=>{if(!isIosApp()||typeof html!=="string")return html;
+  return html.replace(/<a\b(?=[^>]*href="#\/upgrade")(?=[^>]*class="[^"]*\b(?:btn|promo|nudge)\b)[^>]*>[\s\S]*?<\/a>/g,"")
+    .replace(/<a\b[^>]*href="#\/upgrade"[^>]*>Unlock<\/a>/g,"")
+    .replace(/ · \$15\/yr/g,"").replace(/ \(\$15\/yr\)/g,"").replace(/ \$15\/year\./g,"")
+    .replace(/Premium maker\. Upgrade to see/g,"Premium maker. Members only")};
+const twaPremiumHtml=signedIn=>`<p class="small muted" style="text-align:center">${twaPremiumNote}</p>${signedIn?`<button type="button" class="btn" id="refreshP">${isIosApp()?"Refresh membership":"I've paid, refresh"}</button>`:`<a class="btn" href="#/account">Sign in</a>`}`;
 const canViewAs=()=>!CLOUD||CLOUD.realRole()==="admin";
 const role=()=>{if(CLOUD)return CLOUD.role();const r=LS.get("role",null);return ROLES[r]?r:(LS.get("premium",false)?"premium":"free")};
 const setRole=r=>{if(CLOUD){if(CLOUD.realRole()==="admin")CLOUD.setViewAs(r);return}LS.set("role",r);LS.set("premium",r==="premium"||r==="admin")};
@@ -1047,8 +1054,10 @@ R.account=()=>{bar("Account",{back:true,sub:CLOUD&&CLOUD.user?"@"+me():"Sign in"
   <p class="small muted" style="margin:0">Signed in as ${esc(CLOUD.email())}</p>
   <button type="button" class="btn" id="signout" style="color:var(--red);border-color:var(--red)">Sign out</button>
   <button type="button" class="linkbtn small" id="delacct" style="color:var(--red);margin-top:6px">Delete my account…</button></div>`};
-function liveUpgrade(reason){bar(window.APP_NAME+" Premium",{back:true,sub:"$15 per year"});tab("");
+function liveUpgrade(reason){bar(window.APP_NAME+" Premium",{back:true,sub:isIosApp()?"":"$15 per year"});tab("");
   const r=CLOUD.realRole(),signedIn=!!CLOUD.user,usePortal=signedIn&&CLOUD.hasOpenSubscription();
+  if(isIosApp()&&r!=="premium"&&r!=="admin"){setTimeout(()=>{const b=$("#refreshP");if(b)b.onclick=async()=>{b.disabled=true;await CLOUD.loadProfile();await CLOUD.syncNow();toast(premium()?"Premium is on.":"Not showing yet. Give it a minute and try again.",4000);route()}});
+    return `<div class="pad" style="text-align:center"><p style="font-family:var(--serif);font-size:1.4rem;margin:20px 0 6px">Sled Finder Premium</p><p class="small muted">${esc(signedIn?memberLine():"Not signed in")}</p>${typeof reason==="string"?`<p class="small">${esc(reason)}</p>`:""}<div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">${twaPremiumHtml(signedIn)}<a class="btn" style="border:0" href="#/home">Back to Home</a></div></div>`}
   if(r==="premium"||r==="admin")return `<div class="pad" style="text-align:center"><p style="font-family:var(--serif);font-size:1.6rem;margin:20px 0 6px">${r==="admin"?"Admin (Sled Finder)":"You're a Premium member"}</p><p class="small muted">${esc(memberLine())}</p><div style="display:flex;flex-direction:column;gap:10px;margin-top:18px"><a class="btn pine" href="#/makers">Browse all 61 makers</a><a class="btn" href="#/ticket">Museum ticket</a><a class="btn" href="#/account">Account &amp; membership</a></div></div>`;
   const payCta=usePortal?`<button type="button" class="btn gold" id="joinP">Update payment or manage membership</button>`:`<button type="button" class="btn gold" id="joinP">${r==="lapsed"?"Renew membership · $15/yr":"Join Premium · $15/yr"}</button>`;
   const cta=isAndroidTwa()?twaPremiumHtml(signedIn):(!signedIn?`<a class="btn gold" href="#/account">Sign in to join · $15/yr</a>`:(CLOUD.paymentsOn()?`${payCta}<p class="small muted" style="text-align:center">Secure checkout by Stripe. Back in the app, tap “I've paid, refresh” if Premium doesn't switch on by itself.</p><button type="button" class="btn" id="refreshP">I've paid, refresh</button>`:`<button class="btn gold" disabled>Memberships open soon</button>`));
@@ -1134,7 +1143,7 @@ R.events=()=>{bar("Upcoming Events",{back:true,sub:"Rosebud Sled Museum"});tab("
 
 function route(){
   const h=(location.hash||"#/home").slice(2).split("/");const fn=R[h[0]]||R.home;
-  $("#view").innerHTML=fn(h.length>2?h.slice(1).join(","):h[1]);$("#view").scrollTop=0;bindLikes();bindGalleries();bindComments();
+  $("#view").innerHTML=iosSafe(fn(h.length>2?h.slice(1).join(","):h[1]));$("#view").scrollTop=0;bindLikes();bindGalleries();bindComments();
   const c=$("#cancelP");if(c)c.onclick=()=>{setRole("free");toast("Back to Free");route()};
   const rs=$("#roleSel");if(rs){rs.value=role();rs.onchange=()=>{setRole(rs.value);toast("Demo role: "+ROLES[rs.value]);route()}}
   const tn=$("#tnamef");if(tn)tn.onsubmit=async e=>{e.preventDefault();try{await CLOUD.setDisplayName(new FormData(tn).get("display_name"));toast("Name saved");route()}catch(err){toast(err.message,5000)}};

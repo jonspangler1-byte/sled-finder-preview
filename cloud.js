@@ -10,10 +10,21 @@
 // With no SUPABASE_URL / SUPABASE_ANON_KEY in config.js, this file does nothing and the app runs as the demo.
 (function () {
   "use strict";
-  // Detect a Play Store Trusted Web Activity so we can hide Stripe checkout
-  // (Play Payments policy). Web / PWA browsers keep checkout. The TWA sets
-  // start_url ?src=twa and/or document.referrer android-app://…
+  // Detect a store-wrapped app (Play TWA or iOS App Store) so we can hide
+  // Stripe checkout (Play Payments policy, App Store guideline 3.1.1).
+  // Web / PWA browsers keep checkout. The wrappers set start_url ?src=twa or
+  // ?src=ios, and/or document.referrer android-app://…
+  // SF_isIosApp() is true only inside the iOS wrapper (?src=ios).
+  window.SF_isIosApp = function () {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get("src") === "ios") sessionStorage.setItem("sf-src-ios", "1");
+      return sessionStorage.getItem("sf-src-ios") === "1";
+    } catch (e) { return /[?&]src=ios(&|$)/.test(location.search); }
+  };
+  // Name kept for older callers: true in either store app.
   window.SF_isAndroidTwa = function () {
+    if (window.SF_isIosApp()) return true;
     try {
       const q = new URLSearchParams(location.search);
       if (q.get("src") === "twa") sessionStorage.setItem("sf-src-twa", "1");
@@ -463,7 +474,7 @@
   }
   // Returns a Stripe Checkout (or portal) URL for the signed-in member. Navigating is the caller's job.
   Cloud.startCheckout = async () => {
-    if (window.SF_isAndroidTwa && window.SF_isAndroidTwa()) throw new Error("Memberships are sold on the Sled Finder website, not in this Android app.");
+    if (window.SF_isAndroidTwa && window.SF_isAndroidTwa()) throw new Error("Memberships are not sold in this app.");
     if (!Cloud.user) throw new Error("Sign in first");
     if (Cloud.hasOpenSubscription()) return Cloud.startPortal();
     if (C.STRIPE_CHECKOUT) {
@@ -480,7 +491,7 @@
     return u;
   };
   Cloud.startPortal = async () => {
-    if (window.SF_isAndroidTwa && window.SF_isAndroidTwa()) throw new Error("Memberships are sold on the Sled Finder website, not in this Android app.");
+    if (window.SF_isAndroidTwa && window.SF_isAndroidTwa()) throw new Error("Memberships are not sold in this app.");
     if (C.STRIPE_CHECKOUT) {
       try {
         const data = await invokeBilling("create-portal-session");
