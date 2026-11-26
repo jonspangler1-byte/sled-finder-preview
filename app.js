@@ -1021,12 +1021,16 @@ R.account=()=>{bar("Account",{back:true,sub:CLOUD&&CLOUD.user?"@"+me():"Sign in"
         try{await CLOUD.sendCode(String(new FormData(f).get("email")).trim());toast("Check your email for your sign-in code",4000);route()}catch(err){toast("Couldn't send: "+(err.message||err),5000);b.disabled=false;b.textContent="Email me a sign-in code"}};
       const v=$("#codef");if(v)v.onsubmit=async e=>{e.preventDefault();const b=v.querySelector("button[type=submit]");b.disabled=true;b.textContent="Checking…";
         try{await CLOUD.verifyCode(pe,new FormData(v).get("code"));toast("Signed in");location.hash="#/account"}catch(err){toast("That code didn't work: "+(err.message||err),5000);b.disabled=false;b.textContent="Sign in"}};
+      const pw=$("#pwf");if(pw)pw.onsubmit=async e=>{e.preventDefault();const b=pw.querySelector("button");b.disabled=true;b.textContent="Signing in…";const fd=new FormData(pw);
+        try{await CLOUD.signInPassword(String(fd.get("email")).trim(),String(fd.get("password")));toast("Signed in");location.hash="#/account"}catch(err){toast("Couldn't sign in: "+(err.message||err),5000);b.disabled=false;b.textContent="Sign in"}};
       const o=$("#otherEmail");if(o)o.onclick=()=>{LS.set("pendingEmail","");route()}});
     return `<div class="form">${CLOUD.lastError?`<p class="legend" style="color:var(--red)">${esc(CLOUD.lastError)}</p>`:""}
     ${pe?`<form id="codef" class="form" style="padding:0"><p class="legend" style="padding:0">We emailed a sign-in code to <b>${esc(pe)}</b>. Type it here, or tap the link in that email on this phone.</p>
       <label>Sign-in code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" minlength="6" maxlength="8" title="The 6 to 8 digit code from the email" required></label><button type="submit" class="btn solid">Sign in</button><button type="button" class="btn" id="otherEmail">Use a different email</button></form>`
     :`<form id="signf" class="form" style="padding:0"><p class="legend" style="padding:0">No password needed. Enter your email and we'll send you a sign-in code. New here? This also creates your free account.</p>
-      <label>Email<input name="email" type="email" autocomplete="email" required></label><button type="submit" class="btn solid">Email me a sign-in code</button></form>`}
+      <label>Email<input name="email" type="email" autocomplete="email" required></label><button type="submit" class="btn solid">Email me a sign-in code</button></form>
+      <details id="pwbox" style="margin-top:4px"><summary class="small muted" style="cursor:pointer">Sign in with a password</summary>
+      <form id="pwf" class="form" style="padding:8px 0 0"><p class="small muted" style="margin:0">Only for accounts that were given a password.</p><label>Email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button type="submit" class="btn">Sign in</button></form></details>`}
     <small class="muted">Sleds you saved on this phone stay here; after you sign in you can add them to your account.</small></div>`}
   const r=CLOUD.realRole(),n=CLOUD.unclaimedCount(),pend=CLOUD.pending();
   setTimeout(()=>{

@@ -379,6 +379,12 @@
     set("pendingEmail", email);
   };
   Cloud.pendingEmail = () => get("pendingEmail", "");
+  // Password sign-in for accounts that have a password (e.g. the App Store review demo account).
+  Cloud.signInPassword = async (email, password) => {
+    const { error } = await Cloud.client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    set("pendingEmail", "");
+  };
   Cloud.verifyCode = async (email, code) => {
     const { error } = await Cloud.client.auth.verifyOtp({ email, token: String(code).trim(), type: "email" });
     if (error) throw error;
